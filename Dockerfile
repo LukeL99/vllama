@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y software-properties-common curl && \
     python3.12 \
     python3.12-venv \
     git \
+    nvidia-utils-525 \
     && rm -rf /var/lib/apt/lists/*
 
 # Download and install the ollama CLI tool
