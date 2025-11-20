@@ -44,6 +44,9 @@ jobs:
       # - name: Restore /var/lib/docker/
       #   run: sudo sh -c "mv ${GITHUB_WORKSPACE}/docker/* /var/lib/docker"
 
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
