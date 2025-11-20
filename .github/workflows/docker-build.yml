@@ -99,6 +99,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
+          load: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -113,11 +114,19 @@ jobs:
           
           echo ""
           echo "=== Layer Sizes (from largest to smallest) ==="
-          docker history ${{ secrets.DOCKER_USERNAME }}/vllama:latest --human=true --format "table {{.Size}}\t{{.CreatedBy}}" | head -20
+          # Get the first tag from the list
+          FIRST_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
+          docker history $FIRST_TAG --human=true --format "table {{.Size}}\t{{.CreatedBy}}" | head -20
           
           echo ""
           echo "=== Detailed Image Information ==="
-          docker image inspect ${{ secrets.DOCKER_USERNAME }}/vllama:latest --format='Total Size: {{.Size}} bytes ({{div .Size 1048576}} MB)'
+          TOTAL_SIZE=$(docker image inspect $FIRST_TAG --format='{{.Size}}')
+          TOTAL_SIZE_MB=$((TOTAL_SIZE / 1048576))
+          echo "Total Size: $TOTAL_SIZE bytes ($TOTAL_SIZE_MB MB)"
+          
+          echo ""
+          echo "=== All Image Tags Built ==="
+          echo "${{ steps.meta.outputs.tags }}"
 
       - name: Generate artifact attestation
         if: github.event_name != 'pull_request'
