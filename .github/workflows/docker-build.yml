@@ -26,25 +26,8 @@ jobs:
       attestations: write
 
     steps:
-      # - name: Move /var/lib/docker/
-      #   run: sudo mv /var/lib/docker/ "${GITHUB_WORKSPACE}/docker"
 
-      # - name: Maximize build space
-      #   uses: easimon/maximize-build-space@master
-      #   with:
-      #     root-reserve-mb: 512
-      #     temp-reserve-mb: 32
-      #     swap-size-mb: 32
-      #     remove-dotnet: 'true'
-      #     remove-android: 'true'
-      #     remove-haskell: 'true'
-      #     remove-codeql: 'true'
-      #     build-mount-path: '/var/lib/docker/'
-
-      # - name: Restore /var/lib/docker/
-      #   run: sudo sh -c "mv ${GITHUB_WORKSPACE}/docker/* /var/lib/docker"
-
-      - name: Aggressive cleanup
+      - name: Free Space on Runner
         run: |
           # Remove Java (JDKs)
           sudo rm -rf /usr/lib/jvm
@@ -122,6 +105,19 @@ jobs:
           cache-to: type=gha,mode=max
           # TODO: Test ARM64 support
           platforms: linux/amd64
+
+      - name: Display image size and layers
+        run: |
+          echo "=== Docker Image Size Summary ==="
+          docker images ${{ secrets.DOCKER_USERNAME }}/vllama --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+          
+          echo ""
+          echo "=== Layer Sizes (from largest to smallest) ==="
+          docker history ${{ secrets.DOCKER_USERNAME }}/vllama:latest --human=true --format "table {{.Size}}\t{{.CreatedBy}}" | head -20
+          
+          echo ""
+          echo "=== Detailed Image Information ==="
+          docker image inspect ${{ secrets.DOCKER_USERNAME }}/vllama:latest --format='Total Size: {{.Size}} bytes ({{div .Size 1048576}} MB)'
 
       - name: Generate artifact attestation
         if: github.event_name != 'pull_request'

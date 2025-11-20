@@ -3,33 +3,37 @@ FROM nvidia/cuda:13.0.2-base-ubuntu24.04
 # Set an argument to prevent interactive prompts during package installation
 ARG DEBIAN_FRONTEND=noninteractive
 
-# Install prerequisites for adding PPAs, then add the deadsnakes PPA for modern Python versions.
-RUN apt-get update && apt-get install -y \
+# Install system dependencies, ollama, create user, and cleanup in a single layer
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    ca-certificates \
     python3.12 \
     python3.12-venv \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+    && curl -fsSL https://ollama.com/install.sh | sh \
+    && (groupadd -r vllama 2>/dev/null || true) \
+    && useradd -r -g vllama -d /opt/vllama -s /bin/bash vllama \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Download and install the ollama CLI tool
-RUN curl -fsSL https://ollama.com/install.sh | sh
-
-# Create a non-root user 'vllama' for security, mirroring the vllama.install script.
-# The user's home directory is set to /opt/vllama, which is where we'll run the app.
-RUN useradd -r -g vllama -d /opt/vllama -s /bin/bash vllama || groupadd -r vllama && useradd -r -g vllama -d /opt/vllama -s /bin/bash vllama
-
-# Set the working directory for subsequent commands.
+# Set the working directory
 WORKDIR /opt/vllama
 
-# Copy all project files into the working directory.
-COPY . .
+# Copy only requirements first for better layer caching
+COPY requirements.txt .
 
-# Create a Python virtual environment and install dependencies into it.
-# This follows the same logic as the PKGBUILD, ensuring a clean, isolated environment.
-RUN python3.12 -m venv venv312 && \
-    ./venv312/bin/pip install --no-cache-dir -r requirements.txt
+# Create venv and install dependencies in a single layer
+RUN python3.12 -m venv venv312 \
+    && ./venv312/bin/pip install --no-cache-dir --upgrade pip \
+    && ./venv312/bin/pip install --no-cache-dir -r requirements.txt \
+    && find ./venv312 -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true \
+    && find ./venv312 -type f -name "*.pyc" -delete \
+    && find ./venv312 -type f -name "*.pyo" -delete
 
-# Change the ownership of the application directory to the 'vllama' user.
+# Copy application files
+COPY --chown=vllama:vllama vllama.py .
+COPY --chown=vllama:vllama multiuser.conf .
+
+# Set ownership of venv
 RUN chown -R vllama:vllama /opt/vllama
 
 # Switch to the non-root user.
