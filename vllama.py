@@ -12,9 +12,9 @@ import glob
 import json
 import dataclasses
 import re
-from typing import List, Optional
+from typing import List
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse, JSONResponse
 
 # Qwen Chat Template (from Hugging Face documentation)

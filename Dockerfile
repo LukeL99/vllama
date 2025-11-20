@@ -1,16 +1,11 @@
-# Use an NVIDIA CUDA base image that includes the development toolkit,
-# which is often required for vLLM to build its custom kernels.
-# Ubuntu 22.04 is a stable and common choice.
-FROM nvidia/cuda:12.1.1-devel-ubuntu22.04
+FROM nvidia/cuda:13.0.2-base-ubuntu24.04
 
 # Set an argument to prevent interactive prompts during package installation
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Install prerequisites for adding PPAs, then add the deadsnakes PPA for modern Python versions.
-RUN apt-get update && apt-get install -y software-properties-common curl && \
-    add-apt-repository -y ppa:deadsnakes/ppa && \
-    apt-get update && \
-    apt-get install -y \
+RUN apt-get update && apt-get install -y \
+    curl \
     python3.12 \
     python3.12-venv \
     git \
